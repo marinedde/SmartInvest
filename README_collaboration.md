@@ -116,4 +116,24 @@ touch README_collaboration.md
 # (ou crée-le depuis l'explorateur VS Code)
 
 
+🔁 Git Pull & Merge — Que faire si un fichier MERGE_MSG apparaît ?
+Lorsque vous effectuez un git pull, Git fusionne les changements distants dans votre branche locale. Si Git détecte des différences, il vous demande de valider un message de merge.
+
+Étapes à suivre :
+Un fichier nommé MERGE_MSG s'ouvre automatiquement dans l'éditeur (souvent VS Code).
+
+Laissez le message proposé par défaut (ex : Merge branch 'master' of https://github.com/...).
+
+Enregistrez le fichier (Ctrl + S ou Cmd + S).
+
+Fermez le fichier ou l’onglet.
+
+Git finalise le merge automatiquement.
+
+Vous pouvez ensuite pousser vos modifications :
+
+bash
+git push origin master
+
+
 
