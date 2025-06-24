@@ -1,0 +1,75 @@
+
+## 📦 **1. Transactions immobilières Paris (DVF)**
+
+**Nom de fichier :** `df_streamlit.csv` (ou `full.csv` à l’origine)
+
+* **Source :** [https://data.gouv.fr](https://www.data.gouv.fr/fr/datasets/demandes-de-valeurs-foncieres/)
+* **Nom officiel :** Demandes de valeurs foncières (DVF)
+* **Contenu :** prix de vente, surface, adresse, latitude/longitude après géocodage
+* **Format d'origine :** `.txt` ou `.csv`, à géocoder pour obtenir les coordonnées
+
+---
+
+## 🌳 **2. Espaces verts à Paris**
+
+**Nom de fichier :** `espaces_verts.csv` ou `espaces_verts_open_data_paris.csv`
+
+* **Source :** [https://opendata.paris.fr](https://opendata.paris.fr/explore/dataset/espaces_verts/information/)
+* **Nom officiel :** Espaces verts ouverts au public
+* **Colonnes utiles :** `Geo point` (lat,lon)
+
+---
+
+## 🛍️ **3. Commerces de proximité**
+
+**Nom de fichier :** `datashop.csv`
+
+* **Source :** [https://data.cquest.org/insee\_rp/commerces/](https://data.cquest.org/insee_rp/commerces/)
+* **Colonnes utiles :** `X`, `Y` (longitude, latitude) + filtre INSEE pour Paris (code 75)
+
+---
+
+## 🚉 **4. Gares SNCF / Île-de-France**
+
+**Nom de fichier :** `emplacement-des-gares-idf.csv`
+
+* **Source :** [https://data.iledefrance-mobilites.fr](https://data.iledefrance-mobilites.fr)
+* **Nom officiel :** Emplacement des gares et points d’arrêt
+* **Colonnes utiles :** `Geo Point` ou `Geo Shape`
+
+---
+
+## 🏫 **5. Écoles primaires et collèges**
+
+**Nom de fichier :**
+
+* `secteurs-scolaires-ecoles_elementaires.csv`
+
+* `etablissements-scolaires-colleges.csv`
+
+* **Source :**
+
+  * [https://opendata.paris.fr](https://opendata.paris.fr) pour les secteurs scolaires
+  * [https://data.education.gouv.fr](https://data.education.gouv.fr) pour les établissements
+
+* **Colonnes utiles :** `geom_x_y` ou `Geo Point` (selon fichier)
+
+---
+
+## 🎓 **6. Universités (optionnel)**
+
+**Source suggérée :**
+[https://data.enseignementsup-recherche.gouv.fr](https://data.enseignementsup-recherche.gouv.fr)
+
+* Tu peux rechercher **"établissements d’enseignement supérieur géolocalisés"**
+
+---
+
+### 📁 Bon à savoir :
+
+* Pour toutes les sources, veille à **filtrer sur Paris (`code postal` = 75XXX)** si besoin.
+* Les coordonnées peuvent être sous :
+
+  * `Geo Point` → `48.85,2.35`
+  * ou `geom_x_y` → `2.35,48.85` (souvent inversé !)
+
