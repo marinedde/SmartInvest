@@ -1,4 +1,4 @@
-from data_management.database_connection.smartinvest_db import Connection
+from data_storage.database_connection.smartinvest_db import Connection
 
 cn = Connection()
 

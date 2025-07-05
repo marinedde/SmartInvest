@@ -1,4 +1,4 @@
-from data_management.sql_alchemy_connect.alchemy_cur import AlchemyConn
+from data_storage.sql_alchemy_connect.alchemy_cur import AlchemyConn
 import pandas as pd
 
 
