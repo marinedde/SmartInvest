@@ -11,6 +11,8 @@ env/
 
 data
 data/
+archives
+
 
 __pycache__/
 *.pyc

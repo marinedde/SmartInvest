@@ -15,6 +15,7 @@ class Connection:
         self.cursor = self.conn.cursor()
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS raw_data (id SERIAL PRIMARY KEY,
+                                            valeur_fonciere FLOAT,
                                             surface_reelle_bati FLOAT,
                                             nombre_pieces_principales INTEGER,
                                             longitude FLOAT,
