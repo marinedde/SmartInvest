@@ -3,6 +3,16 @@
 SmartInvest est un projet de data science visant à **analyser, visualiser et prédire les prix immobiliers à Paris** sur plusieurs années.  
 Il a été développé dans le cadre du bootcamp **Jedha – Data Fullstack**.
 
+## Utilisation et venv
+
+Pour utiliser les scripts et notebook correctement un fichier requirements.txt est disponible
+Il est fortement recommandé d'utiliser un environnement virtuel Python (venv) :
+cmd : python -m venv venv
+
+Puis installer les dépendance via : 
+cmd : pip install -r requirements.txt
+
+
 ## 🎯 Objectifs
 
 - Étudier l'évolution des prix au m² à Paris de 2018 à 2024
@@ -10,7 +20,7 @@ Il a été développé dans le cadre du bootcamp **Jedha – Data Fullstack**.
 - Proposer une **application Streamlit** interactive pour explorer les données et faire des prédictions
 - Utiliser **MLflow** pour le suivi des expérimentations modèles
 
-## 📁 Structure du projet
+<!-- ## 📁 Structure du projet
 
 SmartInvest/
 ├── README.md # Présentation du projet
@@ -20,7 +30,7 @@ SmartInvest/
 ├── mlflow/ # Dossier de tracking MLflow
 ├── models/ # Modèles sauvegardés (.pkl)
 ├── requirements.txt # Librairies nécessaires
-└── .gitignore # Fichiers à exclure du versionning
+└── .gitignore # Fichiers à exclure du versionning -->
 
 
 ## 🔧 Technologies utilisées

@@ -1,6 +1,9 @@
-from data_storage.script_integration_data import integration
+from data_storage.script_integration_data import integration, exploData
 
 
-integration()
+
+if __name__ == "__main__":
+    # exploData()
+    integration()
 
 
