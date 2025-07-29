@@ -24,13 +24,11 @@ env/
 # Streamlit
 .streamlit/
 
-# Model files (trop gros pour Git)
-*.pkl
-*.h5
-*.model
-models/*.pkl
+# Gros fichiers seulement (gardons les petits modèles)
+# model.pkl est OK (3.6MB)
+# *.pkl
 
-# Data files
+# Data files volumineux
 *.csv
 data/
 
@@ -41,4 +39,4 @@ data/
 *.log
 EOF
 
-echo "✅ .gitignore mis à jour"
+echo "✅ .gitignore modifié"
