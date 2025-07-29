@@ -6,7 +6,7 @@ from scrapy.crawler import CrawlerProcess
 class AppartSpider(scrapy.Spider):
     name = 'appartSpider'
     async def start(self):
-        urls = []
+        urls = ['https://www.seloger.com/classified-search?distributionTypes=Buy,Buy_Auction&estateTypes=House,Apartment&locations=AD08FR31096']
         
         for url in urls:
             print(url)
@@ -17,8 +17,12 @@ class AppartSpider(scrapy.Spider):
             )
 
     async def parse(self, response):
-        titles = response.xpath('').getall()
+        titles = response.xpath('//a[@data-testid="card-mfe-covering-link-testid"]/@title').getall()
+        adresse = response.xpath("//div[@data-testid='cardmfe-description-box-address']/text()").getall()
+        m2 = response.xpath("//div[@data-testid='cardmfe-keyfacts-testid']/div[5]/text()").getall()
         print(titles[0])
+        print(adresse[0])
+        # print(m2)
         yield
 
 if __name__ == "__main__":
