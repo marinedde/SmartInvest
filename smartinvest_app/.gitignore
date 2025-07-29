@@ -1,0 +1,42 @@
+cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments  
+venv_*/
+env/
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# MacOS
+.DS_Store
+
+# Streamlit
+.streamlit/
+
+# Gros fichiers seulement (gardons les petits modèles)
+# model.pkl est OK (3.6MB)
+# *.pkl
+
+# Data files volumineux
+*.csv
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+EOF
+
+echo "✅ .gitignore modifié"
