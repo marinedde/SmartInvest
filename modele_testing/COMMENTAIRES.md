@@ -1,0 +1,1 @@
+Les membres de ce groupe peuvent dans leur dossier respectif expérimenter des modèles et pusher sur le main sans écraser le travail des autres.
