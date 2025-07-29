@@ -35,11 +35,12 @@ class Connection:
                                             nb_POIs_inf_1km INTEGER,
                                             cle_interop_adr_proche TEXT,
                                             distance_batiment_m FLOAT,
-                                            annee_construction_dpe FLOAT)""")
+                                            annee_construction_dpe FLOAT,
+                                            zone INTEGER)""")
         self.conn.commit()
         print("Connexion parfaitement établie")
         
-    def insert_data(self, surface_reelle_bati,prix_m2,nombre_pieces_principales,longitude,latitude,nombre_lots,annee,arrondissement,distance_datashop_km,distance_espace_vert_km,distance_college_km,distance_universite_km,distance_ecole_km,distance_metro_km,distance_TER_km,distance_POI_min_km,proche_POI_1km,nb_POIs_inf_1km,cle_interop_adr_proche,distance_batiment_m,annee_construction_dpe):
+    def insert_data(self, surface_reelle_bati,prix_m2,nombre_pieces_principales,longitude,latitude,nombre_lots,annee,arrondissement,distance_datashop_km,distance_espace_vert_km,distance_college_km,distance_universite_km,distance_ecole_km,distance_metro_km,distance_TER_km,distance_POI_min_km,proche_POI_1km,nb_POIs_inf_1km,cle_interop_adr_proche,distance_batiment_m,annee_construction_dpe,zone):
         requete_SQL = """INSERT INTO raw_data (surface_reelle_bati,
                                             prix_m2,
                                             nombre_pieces_principales,
@@ -60,11 +61,25 @@ class Connection:
                                             nb_POIs_inf_1km,
                                             cle_interop_adr_proche,
                                             distance_batiment_m,
-                                            annee_construction_dpe) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-        values = (surface_reelle_bati,prix_m2,nombre_pieces_principales,longitude,latitude,nombre_lots,annee,arrondissement,distance_datashop_km,distance_espace_vert_km,distance_college_km,distance_universite_km,distance_ecole_km,distance_metro_km,distance_TER_km,distance_POI_min_km,proche_POI_1km,nb_POIs_inf_1km,cle_interop_adr_proche,distance_batiment_m,annee_construction_dpe)
+                                            annee_construction_dpe,
+                                            zone) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+        values = (surface_reelle_bati,prix_m2,nombre_pieces_principales,longitude,latitude,nombre_lots,annee,arrondissement,distance_datashop_km,distance_espace_vert_km,distance_college_km,distance_universite_km,distance_ecole_km,distance_metro_km,distance_TER_km,distance_POI_min_km,proche_POI_1km,nb_POIs_inf_1km,cle_interop_adr_proche,distance_batiment_m,annee_construction_dpe,zone)
         self.cursor.execute(requete_SQL, values)
         self.conn.commit()
         print("insertion réussie")
+        
+        
+    def updateColonneZone(self, zone, id_ligne):
+        requete_sql = """
+        UPDATE raw_data SET zone = %s WHERE id = %s
+        """
+        values = (zone,id_ligne)
+        self.cursor.execute(requete_sql, values)
+        self.conn.commit()
+        print("update réussie")
+
+    def sayHello():
+        print('hello World')
 
     def close_connection(self):
         self.cursor.close()
