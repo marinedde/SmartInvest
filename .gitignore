@@ -1,39 +1,22 @@
+cat > .gitignore << 'EOF'
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+dist/
+build/
 
-# Virtual environments
+# Virtual environments  
 venv_*/
 env/
-ENV/
-.venv
+.venv/
 .env
 
 # IDE
 .vscode/
 .idea/
 *.swp
-*.swo
 
 # MacOS
 .DS_Store
@@ -45,10 +28,17 @@ ENV/
 *.pkl
 *.h5
 *.model
+models/*.pkl
+
+# Data files
+*.csv
+data/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Logs
 *.log
+EOF
 
-# Temporary files
-*.tmp
-*.temp
+echo "✅ .gitignore mis à jour"
