@@ -1,11 +1,11 @@
-# main.py - API SmartInvest avec FastAPI (Version améliorée)
+# main.py - API SmartInvest CORRIGÉE (Sans valeur foncière) - VERSION FIXÉE 46 FEATURES
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import joblib
 import pandas as pd
 import numpy as np
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import logging
 from datetime import datetime
 import os
@@ -14,34 +14,33 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialisation de l'app FastAPI
+# Initialisation FastAPI
 app = FastAPI(
     title="🏠 SmartInvest API",
-    description="API de prédiction de prix immobilier pour Paris",
-    version="2.0.0",
+    description="API de prédiction de prix immobilier pour Paris (SANS valeur foncière)",
+    version="3.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
 
-# Configuration CORS pour permettre les appels depuis Streamlit
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En production, spécifier les domaines autorisés
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Chargement du modèle avec gestion d'erreur améliorée
+# Chargement modèle
 model = None
 model_path_used = None
 
-# Chemins à tester dans l'ordre
 paths_to_try = [
-    "model.pkl",                    # Racine du projet
-    "./model.pkl",                  # Racine explicite
-    "models/model.pkl",             # Dossier models
-    os.path.join(os.getcwd(), "model.pkl"),  # Chemin absolu
+    "model.pkl",
+    "./model.pkl", 
+    "models/model.pkl",
+    os.path.join(os.getcwd(), "model.pkl"),
 ]
 
 for path in paths_to_try:
@@ -49,211 +48,250 @@ for path in paths_to_try:
         if os.path.exists(path):
             model = joblib.load(path)
             model_path_used = path
-            logger.info(f"✅ Modèle chargé avec succès depuis {path}")
+            logger.info(f"✅ Modèle chargé: {path}")
             break
-        else:
-            logger.info(f"📁 Fichier non trouvé: {path}")
     except Exception as e:
         logger.warning(f"⚠️ Erreur chargement {path}: {e}")
 
 if model is None:
-    logger.error("❌ AUCUN MODÈLE CHARGÉ - L'API fonctionnera en mode dégradé")
-    logger.error(f"📁 Répertoire de travail: {os.getcwd()}")
-    logger.error(f"📄 Fichiers disponibles: {[f for f in os.listdir('.') if f.endswith('.pkl')]}")
+    logger.error("❌ AUCUN MODÈLE CHARGÉ")
 
-# Schémas Pydantic avec validation avancée
+# Schema Pydantic CORRIGÉ - SANS valeur foncière
 class InputData(BaseModel):
-    """Données d'entrée pour la prédiction immobilière"""
+    """Données d'entrée pour prédiction (SANS valeur foncière)"""
     
-    # Champs obligatoires (compatibles avec Streamlit)
+    # Features de base DVF (obligatoires)
     surface_reelle_bati: float = Field(
         ..., 
-        gt=5.0, 
-        le=1000.0,
+        gt=10.0, 
+        le=500.0,
         description="Surface réelle bâtie en m²"
-    )
-    valeur_fonciere: float = Field(
-        ..., 
-        gt=10000, 
-        le=10000000,
-        description="Valeur foncière en euros"
-    )
-    annee_construction_dpe: int = Field(
-        ..., 
-        ge=1800, 
-        le=datetime.now().year,
-        description="Année de construction du bâtiment"
     )
     nombre_pieces_principales: int = Field(
         ..., 
         ge=1, 
-        le=20,
+        le=15,
         description="Nombre de pièces principales"
     )
     arrondissement: int = Field(
         ..., 
         ge=1, 
         le=20,
-        description="Arrondissement parisien (1 à 20)"
+        description="Arrondissement parisien (1-20)"
     )
     
-    # Champs optionnels avec valeurs par défaut
-    annee: Optional[int] = Field(
-        default=datetime.now().year,
-        ge=2010,
+    # Coordonnées (importantes pour features enrichies)
+    longitude: float = Field(
+        default=2.347,
+        ge=2.224,
+        le=2.469,
+        description="Longitude (coordonnée Est Paris)"
+    )
+    latitude: float = Field(
+        default=48.857,
+        ge=48.815,
+        le=48.902,
+        description="Latitude (coordonnée Nord Paris)"
+    )
+    
+    # Features optionnelles avec valeurs par défaut
+    nombre_lots: int = Field(
+        default=1,
+        ge=1,
+        le=10,
+        description="Nombre de lots"
+    )
+    annee: int = Field(
+        default=2024,
+        ge=2020,
+        le=2024,
+        description="Année de référence"
+    )
+    annee_construction_dpe: int = Field(
+        default=1970,
+        ge=1800,
         le=datetime.now().year,
-        description="Année de la transaction"
-    )
-    distance_metro_km: Optional[float] = Field(
-        default=0.5,
-        ge=0.0,
-        le=5.0,
-        description="Distance au métro le plus proche en km"
-    )
-    nb_POIs_1km: Optional[int] = Field(
-        default=10,
-        ge=0,
-        le=100,
-        description="Nombre de points d'intérêt dans un rayon de 1km"
-    )
-    
-    # Nouveaux champs pour compatibilité Streamlit
-    etage: Optional[str] = Field(
-        default="2ème",
-        description="Étage du logement"
-    )
-    balcon: Optional[bool] = Field(
-        default=False,
-        description="Présence d'un balcon ou terrasse"
-    )
-    parking: Optional[bool] = Field(
-        default=False,
-        description="Place de parking incluse"
-    )
-    ascenseur: Optional[bool] = Field(
-        default=False,
-        description="Présence d'un ascenseur"
+        description="Année de construction (base DPE)"
     )
     
     @validator('arrondissement')
     def validate_arrondissement(cls, v):
         if v not in range(1, 21):
-            raise ValueError('L\'arrondissement doit être entre 1 et 20')
-        return v
-    
-    @validator('surface_reelle_bati')
-    def validate_surface(cls, v, values):
-        if 'nombre_pieces_principales' in values:
-            pieces = values['nombre_pieces_principales']
-            if v / pieces < 8:  # Minimum 8m² par pièce
-                raise ValueError('Surface trop petite par rapport au nombre de pièces')
+            raise ValueError('Arrondissement doit être 1-20')
         return v
 
 class PredictionResponse(BaseModel):
-    """Réponse de prédiction"""
-    prix_m2: float = Field(..., description="Prix prédit au m² en euros")
-    valeur_totale_estimee: float = Field(..., description="Valeur totale estimée")
-    confiance: Optional[float] = Field(None, description="Niveau de confiance (0-1)")
-    details: Optional[Dict[str, Any]] = Field(None, description="Informations détaillées")
-    timestamp: str = Field(..., description="Horodatage de la prédiction")
+    """Réponse de prédiction CORRIGÉE"""
+    prix_m2: float = Field(..., description="Prix prédit au m² (€)")
+    valeur_totale_estimee: float = Field(..., description="Valeur totale pour la surface donnée")
+    marge_erreur: float = Field(..., description="Marge d'erreur ±MAE (€/m²)")
+    fourchette_min: float = Field(..., description="Prix minimum fourchette")
+    fourchette_max: float = Field(..., description="Prix maximum fourchette") 
+    confiance: float = Field(..., description="Niveau de confiance 0-1")
+    details: Dict[str, Any] = Field(..., description="Détails de l'estimation")
+    timestamp: str = Field(..., description="Horodatage")
 
-class HealthResponse(BaseModel):
-    """Réponse de santé de l'API"""
-    status: str
-    model_loaded: bool
-    version: str
-    timestamp: str
+# Fonctions utilitaires pour générer les 46 features
+def encode_zone_manuelle(arrondissement: int) -> int:
+    """Encode l'arrondissement en zones"""
+    if arrondissement in [1, 2, 3, 4]:
+        return 1  # Centre historique
+    elif arrondissement in [5, 6, 7, 8]:
+        return 2  # Centre-Ouest chic
+    elif arrondissement in [9, 10, 11]:
+        return 3  # Nord-Est populaire
+    elif arrondissement in [12, 13, 14]:
+        return 4  # Sud-Est
+    elif arrondissement in [15, 16]:
+        return 5  # Ouest résidentiel
+    else:  # 17, 18, 19, 20
+        return 6  # Nord périphérique
 
-# Utilitaires
-def etage_to_numeric(etage: str) -> int:
-    """Convertit l'étage textuel en numérique"""
-    mapping = {
-        "RDC": 0, "1er": 1, "2ème": 2, "3ème": 3, 
-        "4ème": 4, "5ème+": 5
-    }
-    return mapping.get(etage, 2)
+def etage_to_numeric(etage_str: str = "2") -> int:
+    """Convertit l'étage en numérique (valeur par défaut)"""
+    try:
+        return int(etage_str) if etage_str.isdigit() else 2
+    except:
+        return 2
 
 def encode_poi_dominant(distance_metro: float, nb_pois: int) -> int:
-    """Encode POI_dominant en numérique basé sur les distances"""
+    """Encode le type de POI dominant"""
     if distance_metro < 0.3:
-        return 0  # metro
-    elif nb_pois > 10:
-        return 1  # commerce
+        return 0  # Transport dominant
+    elif nb_pois > 15:
+        return 1  # Commerce dominant
+    elif nb_pois < 5:
+        return 2  # Résidentiel
     else:
-        return 2  # autre
-
-def encode_zone_manuelle(arrondissement: int) -> int:
-    """Encode zone_manuelle basé sur l'arrondissement"""
-    if arrondissement in [1, 2, 3, 4, 6, 7, 8, 9]:
-        return 0  # Centre
-    elif arrondissement in [5, 10, 11, 12]:
-        return 1  # Est
-    elif arrondissement in [15, 16, 17]:
-        return 2  # Ouest
-    else:
-        return 3  # Nord/Sud
+        return 3  # Mixte
 
 def encode_zone_kmeans(arrondissement: int) -> int:
-    """Encode zone_kmeans basé sur l'arrondissement"""
-    return (arrondissement - 1) % 4  # 0, 1, 2, 3
+    """Encode en zones K-means simulées"""
+    zones = {
+        1: 0, 2: 0, 3: 1, 4: 0, 5: 1, 6: 0, 7: 0, 8: 0,
+        9: 2, 10: 2, 11: 2, 12: 3, 13: 3, 14: 3, 15: 4,
+        16: 4, 17: 5, 18: 5, 19: 5, 20: 2
+    }
+    return zones.get(arrondissement, 2)
 
-def prepare_features_fixed(data: InputData) -> pd.DataFrame:
-    """Génère exactement 46 features pour correspondre au modèle"""
+def calculate_comprehensive_features(data: InputData) -> Dict[str, float]:
+    """Calcule toutes les features de distance et POI nécessaires"""
     
-    # Features de base (8)
+    # Coordonnées approximatives du centre de chaque arrondissement
+    arrond_centers = {
+        1: (2.341, 48.860), 2: (2.342, 48.869), 3: (2.362, 48.863),
+        4: (2.354, 48.854), 5: (2.351, 48.844), 6: (2.332, 48.851),
+        7: (2.318, 48.856), 8: (2.313, 48.873), 9: (2.338, 48.876),
+        10: (2.363, 48.873), 11: (2.379, 48.858), 12: (2.388, 48.840),
+        13: (2.359, 48.829), 14: (2.327, 48.833), 15: (2.301, 48.842),
+        16: (2.275, 48.848), 17: (2.308, 48.884), 18: (2.342, 48.892),
+        19: (2.384, 48.884), 20: (2.397, 48.864)
+    }
+    
+    center_lon, center_lat = arrond_centers.get(data.arrondissement, (data.longitude, data.latitude))
+    base_distance = abs(data.longitude - center_lon) + abs(data.latitude - center_lat)
+    
+    # Calcul des distances
+    distance_metro = max(0.1, min(2.5, base_distance * 50 + np.random.uniform(0.1, 0.8)))
+    
+    # Densité POI par arrondissement
+    poi_density = {
+        1: 25, 2: 20, 3: 22, 4: 24, 5: 18, 6: 26, 7: 20, 8: 23,
+        9: 19, 10: 17, 11: 16, 12: 14, 13: 12, 14: 13, 15: 15,
+        16: 18, 17: 16, 18: 14, 19: 11, 20: 13
+    }
+    
+    base_poi_count = poi_density.get(data.arrondissement, 15)
+    poi_multiplier = max(0.5, 2.0 - distance_metro)
+    nb_pois = int(base_poi_count * poi_multiplier)
+    
+    return {
+        "distance_metro_km": distance_metro,
+        "distance_ecole_km": max(0.2, distance_metro * 0.8),
+        "distance_college_km": distance_metro * 1.1,
+        "distance_universite_km": distance_metro * 2.0,
+        "distance_espace_vert_km": distance_metro * 0.9,
+        "distance_commerce_km": distance_metro * 1.2,
+        "distance_transport_km": distance_metro * 3.0,
+        "distance_POI_min_km": min(distance_metro, 0.1),
+        "distance_batiment_m": 25.0,
+        "distance_TER_km": max(1.0, distance_metro * 5.0),
+        "distance_datashop_km": max(0.5, distance_metro * 2.0),
+        "nb_POIs_1km": nb_pois,
+        "nb_POIs_<1km": nb_pois,
+        "proche_POI_1km": 1 if nb_pois > 10 else 0,
+        "POI_dominant": encode_poi_dominant(distance_metro, nb_pois)
+    }
+
+def prepare_model_features(data: InputData) -> pd.DataFrame:
+    """
+    Prépare EXACTEMENT les 46 features attendues par le modèle
+    SANS utiliser la valeur foncière réelle
+    """
+    
+    # Calculer toutes les features de distance et POI
+    comprehensive_features = calculate_comprehensive_features(data)
+    
+    # Features de base
+    age_batiment = datetime.now().year - data.annee_construction_dpe
+    surface_par_piece = data.surface_reelle_bati / data.nombre_pieces_principales
+    
+    # Estimation du prix de référence basée sur l'arrondissement (SANS valeur foncière réelle)
+    prix_ref_arr = {
+        1: 15000, 2: 13000, 3: 12000, 4: 14000, 5: 11000, 6: 14500, 7: 13500, 8: 12500,
+        9: 10500, 10: 10000, 11: 9500, 12: 9000, 13: 8500, 14: 9200, 15: 9800,
+        16: 11500, 17: 9300, 18: 8800, 19: 8200, 20: 8500
+    }
+    prix_m2_reference = prix_ref_arr.get(data.arrondissement, 9000)
+    valeur_estimee = prix_m2_reference * data.surface_reelle_bati
+    
+    # Construire le dictionnaire complet de 46 features
     features = {
+        # Features de base (8)
         "surface_reelle_bati": data.surface_reelle_bati,
-        "valeur_fonciere": data.valeur_fonciere,
+        "valeur_fonciere": valeur_estimee,  # Estimation basée sur arrondissement
         "annee": data.annee,
         "annee_construction_dpe": data.annee_construction_dpe,
         "nombre_pieces_principales": data.nombre_pieces_principales,
         "arrondissement": data.arrondissement,
-        "distance_metro_km": data.distance_metro_km,
-        "nb_POIs_1km": data.nb_POIs_1km,
-    }
-    
-    # Calculer des features dérivées
-    age_batiment = datetime.now().year - data.annee_construction_dpe
-    surface_par_piece = data.surface_reelle_bati / data.nombre_pieces_principales
-    prix_m2_actuel = data.valeur_fonciere / data.surface_reelle_bati
-    
-    # Features supplémentaires pour atteindre 46 (38 de plus)
-    additional_features = {
+        "distance_metro_km": comprehensive_features["distance_metro_km"],
+        "nb_POIs_1km": comprehensive_features["nb_POIs_1km"],
+        
         # Features géographiques (6)
-        "latitude": 48.8566 + (data.arrondissement - 10.5) * 0.01,
-        "longitude": 2.3522 + (data.arrondissement - 10.5) * 0.01,
+        "latitude": data.latitude,
+        "longitude": data.longitude,
         "x": 652000 + data.arrondissement * 1000,
         "y": 6862000 + data.arrondissement * 1000,
         "distance_centre_km": abs(data.arrondissement - 1) * 0.5,
         "zone_code": encode_zone_manuelle(data.arrondissement),
         
         # Features de distances (8)
-        "distance_ecole_km": max(0.2, data.distance_metro_km * 0.8),
-        "distance_college_km": data.distance_metro_km * 1.1,
-        "distance_universite_km": data.distance_metro_km * 2.0,
-        "distance_espace_vert_km": data.distance_metro_km * 0.9,
-        "distance_commerce_km": data.distance_metro_km * 1.2,
-        "distance_transport_km": data.distance_metro_km * 3.0,
-        "distance_POI_min_km": min(data.distance_metro_km, 0.1),
-        "distance_batiment_m": 10.0,
+        "distance_ecole_km": comprehensive_features["distance_ecole_km"],
+        "distance_college_km": comprehensive_features["distance_college_km"],
+        "distance_universite_km": comprehensive_features["distance_universite_km"],
+        "distance_espace_vert_km": comprehensive_features["distance_espace_vert_km"],
+        "distance_commerce_km": comprehensive_features["distance_commerce_km"],
+        "distance_transport_km": comprehensive_features["distance_transport_km"],
+        "distance_POI_min_km": comprehensive_features["distance_POI_min_km"],
+        "distance_batiment_m": comprehensive_features["distance_batiment_m"],
         
         # Features calculées (8)
         "age_batiment": age_batiment,
         "surface_par_piece": surface_par_piece,
-        "prix_m2_reference": prix_m2_actuel,
+        "prix_m2_reference": prix_m2_reference,
         "densite_pieces": data.nombre_pieces_principales / data.surface_reelle_bati * 100,
-        "etage_numerique": etage_to_numeric(data.etage),
-        "bonus_equipements": sum([data.balcon, data.parking, data.ascenseur]),
+        "etage_numerique": etage_to_numeric("2"),  # Valeur par défaut
+        "bonus_equipements": 1,  # Valeur par défaut (pas de balcon/parking dans InputData)
         "surface_categorie": 1 if data.surface_reelle_bati < 50 else 2 if data.surface_reelle_bati < 80 else 3,
         "arrondissement_groupe": 1 if data.arrondissement <= 10 else 2,
         
         # Features de marché (6)
-        "nb_lots": 1,
-        "proche_POI": 1 if data.nb_POIs_1km > 5 else 0,
-        "poi_dominant_code": encode_poi_dominant(data.distance_metro_km, data.nb_POIs_1km),
+        "nb_lots": data.nombre_lots,
+        "proche_POI": comprehensive_features["proche_POI_1km"],
+        "poi_dominant_code": comprehensive_features["POI_dominant"],
         "zone_kmeans": encode_zone_kmeans(data.arrondissement),
-        "market_segment": 1 if data.valeur_fonciere < 400000 else 2 if data.valeur_fonciere < 800000 else 3,
-        "luxury_indicator": min(3, sum([data.balcon, data.parking, data.ascenseur]) + (1 if data.arrondissement <= 8 else 0)),
+        "market_segment": 1 if valeur_estimee < 400000 else 2 if valeur_estimee < 800000 else 3,
+        "luxury_indicator": min(3, 1 + (1 if data.arrondissement <= 8 else 0)),
         
         # Features temporelles (4)
         "mois": datetime.now().month,
@@ -263,450 +301,206 @@ def prepare_features_fixed(data: InputData) -> pd.DataFrame:
         
         # Features d'interaction (6)
         "surface_x_pieces": data.surface_reelle_bati * data.nombre_pieces_principales,
-        "prix_x_arrond": data.valeur_fonciere * data.arrondissement / 1000000,
+        "prix_x_arrond": valeur_estimee * data.arrondissement / 1000000,
         "age_x_surface": age_batiment * data.surface_reelle_bati / 100,
-        "metro_x_pois": data.distance_metro_km * data.nb_POIs_1km,
+        "metro_x_pois": comprehensive_features["distance_metro_km"] * comprehensive_features["nb_POIs_1km"],
         "pieces_x_arrond": data.nombre_pieces_principales * data.arrondissement,
-        "surface_value_ratio": data.surface_reelle_bati / (data.valeur_fonciere / 100000),
+        "surface_value_ratio": data.surface_reelle_bati / (valeur_estimee / 100000),
     }
     
-    # Combiner toutes les features
-    all_features = {**features, **additional_features}
-    
     # Vérifier qu'on a exactement 46 features
-    if len(all_features) != 46:
-        # Ajouter des features de padding si nécessaire
-        for i in range(len(all_features), 46):
-            all_features[f"feature_padding_{i}"] = 0.0
+    if len(features) != 46:
+        logger.warning(f"⚠️ Nombre de features incorrect: {len(features)} au lieu de 46")
     
-    # Créer le DataFrame
-    df = pd.DataFrame([all_features])
+    # Créer DataFrame
+    df = pd.DataFrame([features])
     
-    # S'assurer que tout est numérique
+    # Si le modèle a des noms de features spécifiques, réorganiser
+    if hasattr(model, 'feature_names_in_'):
+        expected_features = model.feature_names_in_
+        logger.info(f"📋 Modèle attend {len(expected_features)} features")
+        
+        # Créer un dictionnaire avec toutes les features attendues
+        final_features = {}
+        for feature_name in expected_features:
+            if feature_name in features:
+                final_features[feature_name] = features[feature_name]
+            else:
+                # Valeur par défaut pour features manquantes
+                if 'distance' in feature_name.lower():
+                    final_features[feature_name] = 1.0
+                elif 'nombre' in feature_name.lower() or 'nb_' in feature_name.lower():
+                    final_features[feature_name] = 1
+                elif 'prix' in feature_name.lower() or 'valeur' in feature_name.lower():
+                    final_features[feature_name] = prix_m2_reference
+                else:
+                    final_features[feature_name] = 0.0
+        
+        # Recréer le DataFrame avec les bonnes features
+        df = pd.DataFrame([final_features])
+        df = df[expected_features]  # Ordre exact du modèle
+    
+    # Conversion en float pour XGBoost
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
     return df
-    """Prépare les features pour le modèle ML avec toutes les colonnes possibles"""
-    
-    # Features de base
-    base_features = {
-        "surface_reelle_bati": data.surface_reelle_bati,
-        "valeur_fonciere": data.valeur_fonciere,
-        "annee": data.annee,
-        "annee_construction_dpe": data.annee_construction_dpe,
-        "nombre_pieces_principales": data.nombre_pieces_principales,
-        "arrondissement": data.arrondissement,
-        "distance_metro_km": data.distance_metro_km,
-        "nb_POIs_1km": data.nb_POIs_1km
-    }
-    
-    # Features calculées
-    etage_num = etage_to_numeric(data.etage)
-    bonus_equipements = sum([data.balcon, data.parking, data.ascenseur])
-    age_batiment = datetime.now().year - data.annee_construction_dpe
-    surface_par_piece = data.surface_reelle_bati / data.nombre_pieces_principales
-    
-    # Encodage des variables catégorielles
-    poi_dominant_encoded = encode_poi_dominant(data.distance_metro_km, data.nb_POIs_1km)
-    zone_manuelle_encoded = encode_zone_manuelle(data.arrondissement)
-    zone_kmeans_encoded = encode_zone_kmeans(data.arrondissement)
-    
-    # Features étendues - toutes les colonnes possibles
-    extended_features = {
-        # Features existantes
-        "nombre_lots": 1,
-        "a_plusieurs_lots": 0,
-        "nb_lots_surface": data.surface_reelle_bati,
-        "proche_POI_1km": 1 if data.nb_POIs_1km > 5 else 0,
-        "POI_dominant": poi_dominant_encoded,
-        "latitude": 48.8566 + (data.arrondissement - 10.5) * 0.01,
-        "longitude": 2.3522 + (data.arrondissement - 10.5) * 0.01,
-        "x": 652000 + data.arrondissement * 1000,  # Coordonnées Lambert
-        "y": 6862000 + data.arrondissement * 1000,
-        
-        # Distances
-        "distance_ecole_km": max(0.2, data.distance_metro_km * 0.8),
-        "distance_datashop_km": data.distance_metro_km * 1.2,
-        "distance_espace_vert_km": data.distance_metro_km * 0.9,
-        "distance_college_km": data.distance_metro_km * 1.1,
-        "distance_universite_km": data.distance_metro_km * 2.0,
-        "distance_TER_km": data.distance_metro_km * 3.0,
-        "distance_batiment_m": 10.0,
-        "distance_POI_min_km": min(data.distance_metro_km, 0.1),
-        
-        # Identifiants et zones
-        "cle_interop_adr_proche": 1,
-        "zone_manuelle": zone_manuelle_encoded,
-        "zone_kmeans": zone_kmeans_encoded,
-        
-        # Features calculées
-        "etage_numerique": etage_num,
-        "bonus_equipements": bonus_equipements,
-        "age_batiment": age_batiment,
-        "surface_par_piece": surface_par_piece,
-        
-        # Features potentiellement manquantes - ajouts fréquents
-        "prix_m2": data.valeur_fonciere / data.surface_reelle_bati,  # Prix actuel
-        "densite_pieces": data.nombre_pieces_principales / data.surface_reelle_bati * 100,
-        "is_recent": 1 if age_batiment < 10 else 0,
-        "is_old": 1 if age_batiment > 50 else 0,
-        "arrondissement_groupe": 1 if data.arrondissement <= 10 else 2,
-        "surface_categorie": (
-            1 if data.surface_reelle_bati < 30 else
-            2 if data.surface_reelle_bati < 60 else
-            3 if data.surface_reelle_bati < 100 else 4
-        ),
-        
-        # Features géographiques détaillées
-        "distance_centre_km": abs(data.arrondissement - 1) * 0.5,
-        "proximity_score": 1.0 / (1.0 + data.distance_metro_km),
-        "density_score": data.nb_POIs_1km / 20.0,
-        
-        # Features temporelles
-        "mois": datetime.now().month,
-        "trimestre": (datetime.now().month - 1) // 3 + 1,
-        "is_weekend": 0,  # Par défaut jour de semaine
-        
-        # Features de marché immobilier
-        "market_segment": (
-            1 if data.valeur_fonciere < 300000 else
-            2 if data.valeur_fonciere < 600000 else 3
-        ),
-        "luxury_score": min(3, bonus_equipements + (1 if data.arrondissement <= 8 else 0)),
-        
-        # Features d'interaction
-        "surface_x_pieces": data.surface_reelle_bati * data.nombre_pieces_principales,
-        "prix_x_surface": data.valeur_fonciere * data.surface_reelle_bati / 1000000,
-        "age_x_arrond": age_batiment * data.arrondissement,
-        
-        # Features par défaut additionnelles
-        "type_bien": 1,  # Appartement par défaut
-        "etage_max": etage_num + 2,  # Estimation étages du bâtiment
-        "exposition": 1,  # Sud par défaut
-        "balcon_surface": 5.0 if data.balcon else 0.0,
-        "parking_type": 1 if data.parking else 0,
-        "ascenseur_present": 1 if data.ascenseur else 0
-    }
-    
-    # Combinaison de toutes les features
-    all_features = {**base_features, **extended_features}
-    df = pd.DataFrame([all_features])
-    
-    # Conversion explicite en types numériques pour XGBoost
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            try:
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-            except:
-                df[col] = 0
-    
-    # Si on a les features attendues par le modèle, on les utilise
-    if hasattr(model, 'feature_names_in_') and model is not None:
-        expected_features = model.feature_names_in_
-        available_features = df.columns.tolist()
-        
-        # Ajouter les features manquantes avec des valeurs par défaut
-        for feature in expected_features:
-            if feature not in available_features:
-                df[feature] = 0  # Valeur par défaut
-        
-        # Réorganiser les colonnes dans l'ordre attendu
-        df = df[expected_features]
-    
-    return df
 
 def calculate_confidence(data: InputData, prediction: float) -> float:
-    """Calcule un score de confiance basé sur les données d'entrée et les métriques du modèle"""
+    """Calcule confiance basée sur MAE=1596€/m² et MAPE=14.9%"""
     
-    # Score de base basé sur les performances du modèle
-    # R² = 0.342, MAE = 1595€/m², RMSE = 2223€/m²
-    base_confidence = 0.68  # Basé sur le R² de test
+    base_confidence = 0.75  # Basé sur MAPE de 14.9%
     
-    # Ajustements selon les caractéristiques du bien
+    # Ajustements
     confidence = base_confidence
     
-    # Réduction de confiance pour des cas atypiques
+    # Réduction pour cas atypiques
     surface_par_piece = data.surface_reelle_bati / data.nombre_pieces_principales
     if surface_par_piece < 15 or surface_par_piece > 50:
         confidence *= 0.85
     
-    # Réduction pour des biens très anciens ou très récents
-    age = datetime.now().year - data.annee_construction_dpe
-    if age > 100 or age < 5:
-        confidence *= 0.90
+    # Réduction pour prédictions extrêmes
+    if prediction > 18000 or prediction < 4000:
+        confidence *= 0.80
     
-    # Réduction pour des prix extrêmes (en dehors de la distribution d'entraînement)
-    if prediction > 20000 or prediction < 3000:
-        confidence *= 0.75
-    
-    # Réduction pour arrondissements avec moins de données
-    if data.arrondissement in [1, 4, 7, 8, 16]:  # Arrondissements premium avec moins de transactions
-        confidence *= 0.90
-    
-    # Bonus pour arrondissements avec beaucoup de données
-    if data.arrondissement in [11, 18, 19, 20]:  # Arrondissements populaires avec plus de données
+    # Bonus pour arrondissements avec plus de données
+    if data.arrondissement in [11, 18, 19, 20, 15]:
         confidence *= 1.05
+    elif data.arrondissement in [1, 4, 7, 8]:
+        confidence *= 0.90
     
-    return max(0.3, min(0.95, confidence))  # Entre 30% et 95%
+    return max(0.40, min(0.95, confidence))
 
-# Endpoints
+# ENDPOINTS
 
-@app.get("/", response_model=Dict[str, str])
+@app.get("/")
 async def root():
-    """Page d'accueil de l'API"""
     return {
-        "message": "🏠 SmartInvest API - Prédiction immobilière Paris",
+        "message": "🏠 SmartInvest API v3.0 - SANS valeur foncière - 46 features",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "important": "Cette API prédit le prix au m² SANS utiliser la valeur foncière réelle"
     }
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
-    """Vérification de la santé de l'API"""
-    return HealthResponse(
-        status="healthy" if model is not None else "unhealthy",
-        model_loaded=model is not None,
-        version="2.0.0",
-        timestamp=datetime.now().isoformat()
-    )
+    expected_features = 46
+    if model and hasattr(model, 'feature_names_in_'):
+        expected_features = len(model.feature_names_in_)
+    
+    return {
+        "status": "healthy" if model is not None else "unhealthy",
+        "model_loaded": model is not None,
+        "version": "3.0.0",
+        "features_expected": expected_features,
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_price(data: InputData):
     """
-    Prédiction du prix au m² d'un bien immobilier parisien
-    
-    Retourne le prix estimé au m² avec un niveau de confiance et des détails.
+    Prédiction du prix au m² SANS utiliser la valeur foncière réelle
+    Utilise uniquement les caractéristiques du bien et sa localisation
     """
     
     if model is None:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Modèle ML non disponible. Contactez l'administrateur."
+            status_code=503,
+            detail="Modèle ML non disponible"
         )
     
     try:
-        # Log pour tracer les requêtes
         request_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        logger.info(f"🔍 Nouvelle prédiction [{request_id}] pour arrondissement {data.arrondissement}")
+        logger.info(f"🔍 Prédiction [{request_id}] - {data.arrondissement}e arr., {data.surface_reelle_bati}m²")
         
-        # Préparation des features
-        input_df = prepare_features_fixed(data)
+        # Préparation features
+        input_df = prepare_model_features(data)
         
-        # Vérification de la compatibilité des colonnes avec le modèle
-        if hasattr(model, 'feature_names_in_'):
-            required_features = model.feature_names_in_
-            available_features = input_df.columns.tolist()
-            missing_features = set(required_features) - set(available_features)
-            
-            if missing_features:
-                logger.warning(f"⚠️ Features manquantes: {missing_features}")
-                # Ajouter les features manquantes avec des valeurs par défaut
-                for feature in missing_features:
-                    input_df[feature] = 0
-            
-            # Réorganiser les colonnes dans l'ordre attendu
-            input_df = input_df[required_features]
+        logger.info(f"📊 Features préparées: {input_df.shape[1]} colonnes")
         
-        # Prédiction (toujours recalculée, jamais mise en cache)
+        # PRÉDICTION
         prediction = model.predict(input_df)[0]
         
-        # Assurer que la prédiction est positive et réaliste
-        prediction = max(1000, min(50000, prediction))
+        # Validation réaliste
+        prediction = max(3000, min(25000, prediction))
         
-        # Calcul des métriques additionnelles
+        # Calculs
         valeur_totale = prediction * data.surface_reelle_bati
         confidence = calculate_confidence(data, prediction)
+        mae = 1596  # Votre MAE réelle
         
-        # Détails supplémentaires
+        fourchette_min = max(1000, prediction - mae)
+        fourchette_max = min(30000, prediction + mae)
+        
+        # Détails
         details = {
-            "request_id": request_id,  # Identifiant unique pour traçabilité
-            "arrondissement_analyse": f"{data.arrondissement}ème arrondissement",
+            "request_id": request_id,
+            "arrondissement": f"{data.arrondissement}e arrondissement",
             "surface_par_piece": round(data.surface_reelle_bati / data.nombre_pieces_principales, 1),
             "age_batiment": datetime.now().year - data.annee_construction_dpe,
             "categorie_prix": (
                 "Premium" if prediction > 15000 
-                else "Elevé" if prediction > 12000 
+                else "Élevé" if prediction > 12000 
                 else "Moyen" if prediction > 9000 
                 else "Abordable"
             ),
-            "equipements": {
-                "balcon": data.balcon,
-                "parking": data.parking,
-                "ascenseur": data.ascenseur
-            }
+            "methode": "XGBoost sans valeur foncière - 46 features",
+            "features_utilisees": len(input_df.columns),
+            "coordonnees": f"{data.latitude:.3f}, {data.longitude:.3f}"
         }
         
-        logger.info(f"✅ Prédiction réussie [{request_id}]: {prediction:.2f} €/m² (confiance: {confidence:.2f})")
+        logger.info(f"✅ Prédiction [{request_id}]: {prediction:.0f} €/m² (confiance: {confidence:.2f})")
         
         return PredictionResponse(
-            prix_m2=round(prediction, 2),
-            valeur_totale_estimee=round(valeur_totale, 2),
+            prix_m2=round(prediction, 0),
+            valeur_totale_estimee=round(valeur_totale, 0),
+            marge_erreur=mae,
+            fourchette_min=round(fourchette_min, 0),
+            fourchette_max=round(fourchette_max, 0),
             confiance=round(confidence, 2),
             details=details,
             timestamp=datetime.now().isoformat()
         )
         
-    except ValueError as ve:
-        logger.error(f"❌ Erreur de validation: {ve}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Erreur de validation des données: {str(ve)}"
-        )
     except Exception as e:
-        logger.error(f"💥 Erreur lors de la prédiction: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erreur interne lors de la prédiction: {str(e)}"
-        )
+        logger.error(f"💥 Erreur prédiction: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
-@app.get("/stats")
-async def get_model_stats():
-    """Statistiques du modèle (si disponibles)"""
+@app.get("/model-info")
+async def get_model_info():
+    """Informations sur le modèle chargé"""
     if model is None:
-        raise HTTPException(status_code=503, detail="Modèle non disponible")
+        return {"error": "Modèle non chargé"}
     
-    stats = {
+    info = {
         "model_type": str(type(model).__name__),
-        "features_count": len(model.feature_names_in_) if hasattr(model, 'feature_names_in_') else "N/A",
-        "model_loaded": True
+        "model_loaded": True,
+        "path_used": model_path_used,
     }
     
     if hasattr(model, 'feature_names_in_'):
-        stats["features"] = model.feature_names_in_.tolist()
-        stats["features_detailed"] = {
-            "expected_count": len(model.feature_names_in_),
-            "feature_list": model.feature_names_in_.tolist()
-        }
+        info["features_expected"] = len(model.feature_names_in_)
+        info["feature_names"] = model.feature_names_in_.tolist()
     
-    return stats
+    if hasattr(model, 'n_features_in_'):
+        info["n_features_in"] = model.n_features_in_
+        
+    return info
 
-@app.get("/inspect-model")
-async def inspect_model():
-    """Inspecte en détail le modèle pour comprendre ses attentes"""
-    if model is None:
-        return {"error": "Modèle non chargé"}
+@app.get("/test-prediction")
+async def test_prediction():
+    """Test rapide de prédiction"""
+    test_data = InputData(
+        surface_reelle_bati=65.0,
+        nombre_pieces_principales=3,
+        arrondissement=11,
+        longitude=2.379,
+        latitude=48.858,
+        annee_construction_dpe=1980
+    )
     
-    try:
-        # Informations sur le modèle
-        model_info = {
-            "model_type": str(type(model)),
-            "model_class": model.__class__.__name__,
-            "has_feature_names_in": hasattr(model, 'feature_names_in_'),
-            "has_n_features": hasattr(model, 'n_features_'),
-            "has_n_features_in": hasattr(model, 'n_features_in_'),
-        }
-        
-        # Essayer différentes méthodes pour obtenir le nombre de features
-        if hasattr(model, 'n_features_in_'):
-            model_info["n_features_in"] = model.n_features_in_
-        elif hasattr(model, 'n_features_'):
-            model_info["n_features"] = model.n_features_
-        
-        # Attributs disponibles du modèle
-        model_attributes = [attr for attr in dir(model) if not attr.startswith('_')]
-        model_info["available_attributes"] = model_attributes
-        
-        # Test avec différents nombres de features
-        test_results = {}
-        for n_features in [32, 46, 55]:
-            try:
-                # Créer un array de test avec n_features colonnes
-                import numpy as np
-                test_array = np.random.random((1, n_features))
-                prediction = model.predict(test_array)
-                test_results[f"test_{n_features}_features"] = {
-                    "success": True,
-                    "prediction": float(prediction[0]) if len(prediction) > 0 else None
-                }
-            except Exception as e:
-                test_results[f"test_{n_features}_features"] = {
-                    "success": False,
-                    "error": str(e)
-                }
-        
-        model_info["feature_tests"] = test_results
-        
-        return model_info
-        
-    except Exception as e:
-        return {"error": f"Erreur lors de l'inspection: {str(e)}"}
-
-@app.get("/debug-model-loading")
-async def debug_model_loading():
-    """Debug du chargement du modèle"""
-    import os
-    import glob
-    
-    debug_info = {
-        "current_directory": os.getcwd(),
-        "model_path_env": os.getenv("MODEL_PATH", "Non défini"),
-        "files_in_current_dir": os.listdir("."),
-        "model_files_found": glob.glob("**/*.pkl", recursive=True),
-        "model_loaded": model is not None,
-    }
-    
-    if model is not None:
-        debug_info["model_type"] = str(type(model))
-        debug_info["model_path_used"] = model_path_used if 'model_path_used' in globals() else "Inconnu"
-    
-    # Tester le chargement manuel
-    test_paths = ["model.pkl", "./model.pkl", "models/model.pkl"]
-    for path in test_paths:
-        try:
-            if os.path.exists(path):
-                test_model = joblib.load(path)
-                debug_info[f"test_load_{path.replace('./', '').replace('/', '_')}"] = "✅ SUCCESS"
-            else:
-                debug_info[f"test_load_{path.replace('./', '').replace('/', '_')}"] = "❌ File not found"
-        except Exception as e:
-            debug_info[f"test_load_{path.replace('./', '').replace('/', '_')}"] = f"❌ Error: {str(e)}"
-    
-    return debug_info
-async def test_model_prediction():
-    """Test direct du modèle avec un array simple"""
-    if model is None:
-        return {"error": "Modèle non chargé"}
-    
-    try:
-        import numpy as np
-        
-        # Test avec exactement 46 features (ce que le modèle attend)
-        test_data_46 = np.random.random((1, 46))
-        
-        try:
-            prediction_46 = model.predict(test_data_46)
-            return {
-                "test_46_features": {
-                    "success": True,
-                    "prediction": float(prediction_46[0]),
-                    "input_shape": test_data_46.shape
-                }
-            }
-        except Exception as e:
-            return {
-                "test_46_features": {
-                    "success": False,
-                    "error": str(e),
-                    "input_shape": test_data_46.shape
-                }
-            }
-            
-    except Exception as e:
-        return {"error": str(e)}
-
-# Gestion des erreurs globales
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    logger.error(f"💥 Erreur non gérée: {exc}")
-    return {"error": "Erreur interne du serveur", "detail": str(exc)}
+    return await predict_price(test_data)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app", 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
